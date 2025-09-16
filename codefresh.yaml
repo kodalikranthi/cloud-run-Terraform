@@ -1,0 +1,92 @@
+version: '1.0'
+
+stages:
+  - clone
+  - build_and_push
+
+steps:
+  clone:
+    title: Clone Repository
+    type: git-clone
+    repo: ${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}
+    revision: ${{CF_BRANCH}}
+    git: github
+    stage: clone
+
+  authenticate_gcp:
+    title: Authenticate with Google Cloud
+    type: gcr
+    stage: build_and_push
+    working_directory: ${{clone}}
+    arguments:
+      GCP_KEY: ${{GCP_SERVICE_ACCOUNT_KEY}}
+      GCP_PROJECT_ID: ${{GCP_PROJECT_ID}}
+      GCP_REGION: ${{GCP_REGION}}
+
+  pull_and_push_images:
+    title: Pull from Private Registry and Push to GAR
+    type: build
+    stage: build_and_push
+    working_directory: ${{clone}}
+    image: docker:20.10.16-dind
+    arguments:
+      GCP_PROJECT_ID: ${{GCP_PROJECT_ID}}
+      GCP_REGION: ${{GCP_REGION}}
+      GAR_REPOSITORY_ID: ${{GAR_REPOSITORY_ID}}
+      IMAGE_NAME: ${{IMAGE_NAME}}
+      IMAGE_TAG: ${{IMAGE_TAG}}
+      PRIVATE_REGISTRY_URL: ${{PRIVATE_REGISTRY_URL}}
+      PRIVATE_REGISTRY_USERNAME: ${{PRIVATE_REGISTRY_USERNAME}}
+      PRIVATE_REGISTRY_PASSWORD: ${{PRIVATE_REGISTRY_PASSWORD}}
+    commands:
+      - echo "Starting Docker daemon"
+      - dockerd-entrypoint.sh &
+      - sleep 10
+      
+      - echo "Installing Google Cloud SDK"
+      - apk add --no-cache curl python3 py3-pip
+      - curl https://sdk.cloud.google.com | bash
+      - export PATH="$PATH:/root/google-cloud-sdk/bin"
+      - gcloud version
+      
+      - echo "Authenticating with Google Cloud"
+      - echo "${{GCP_SERVICE_ACCOUNT_KEY}}" | gcloud auth activate-service-account --key-file=-
+      - gcloud config set project ${{GCP_PROJECT_ID}}
+      
+      - echo "Configuring Docker for private registry access"
+      - echo "${{PRIVATE_REGISTRY_PASSWORD}}" | docker login ${{PRIVATE_REGISTRY_URL}} -u "${{PRIVATE_REGISTRY_USERNAME}}" --password-stdin
+      
+      - echo "Configuring Docker for Google Artifact Registry"
+      - gcloud auth configure-docker ${{GCP_REGION}}-docker.pkg.dev
+      
+      - echo "Pulling image from private registry"
+      - docker pull ${{PRIVATE_REGISTRY_URL}}/${{IMAGE_NAME}}:${{IMAGE_TAG}}
+      
+      - echo "Tagging image for Google Artifact Registry"
+      - docker tag ${{PRIVATE_REGISTRY_URL}}/${{IMAGE_NAME}}:${{IMAGE_TAG}} ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}/${{IMAGE_NAME}}:${{IMAGE_TAG}}
+      
+      - echo "Pushing image to Google Artifact Registry"
+      - docker push ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}/${{IMAGE_NAME}}:${{IMAGE_TAG}}
+      
+      - echo "Cleanup: Removing local images"
+      - docker rmi ${{PRIVATE_REGISTRY_URL}}/${{IMAGE_NAME}}:${{IMAGE_TAG}} || true
+      - docker rmi ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}/${{IMAGE_NAME}}:${{IMAGE_TAG}} || true
+
+  deploy_terraform:
+    title: Deploy Infrastructure with Terraform
+    type: build
+    stage: build_and_push
+    working_directory: ${{clone}}/iaac
+    image: hashicorp/terraform:1.6
+    commands:
+      - echo "Initializing Terraform"
+      - terraform init
+      
+      - echo "Validating Terraform configuration"
+      - terraform validate
+      
+      - echo "Planning Terraform deployment"
+      - terraform plan -var-file=../tfvars/terraform.tfvars -var="image_tag=${{IMAGE_TAG}}"
+      
+      - echo "Applying Terraform configuration"
+      - terraform apply -var-file=../tfvars/terraform.tfvars -var="image_tag=${{IMAGE_TAG}}" -auto-approve
