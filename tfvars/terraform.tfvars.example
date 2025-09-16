@@ -1,0 +1,164 @@
+# Copy this file to terraform.tfvars and update the values
+
+# Required variables
+project_id = "your-gcp-project-id"
+region     = "australia-southeast2"  # Melbourne region
+environment = "dev"
+
+# Network Configuration
+existing_vpc_network = "default"
+existing_vpc_subnet  = "default"
+vpc_access_connector_name = "vpc-connector"  # Set to "" if not using VPC connector
+vpc_access_connector_region = "australia-southeast2"
+
+# Load Balancer Configuration
+load_balancer_network = "default"
+load_balancer_subnet  = "default"
+# load_balancer_ip_address = "10.0.0.100"  # Optional: specify existing IP
+
+# Cloud Run Services Configuration
+cloud_run_services = {
+  "app" = {
+    name         = "my-app"
+    image_name   = "app"
+    image_tag    = "latest"
+    cpu_limit    = "1"
+    memory_limit = "512Mi"
+    min_instances = 0
+    max_instances = 10
+    environment_vars = {
+      "ENVIRONMENT" = "dev"
+      "LOG_LEVEL"   = "info"
+      "PORT"        = "8080"
+      "DEBUG"       = "false"
+    }
+    secret_names = ["DATABASE_URL", "API_KEY", "JWT_SECRET"]
+  }
+  # Add more services as needed
+  # "api" = {
+  #   name         = "my-api"
+  #   image_name   = "api"
+  #   image_tag    = "v1.0"
+  #   cpu_limit    = "2"
+  #   memory_limit = "1Gi"
+  #   min_instances = 1
+  #   max_instances = 20
+  #   environment_vars = {
+  #     "ENVIRONMENT" = "dev"
+  #     "API_VERSION" = "v1"
+  #   }
+  #   secret_names = ["API_SECRET", "DB_PASSWORD"]
+  # }
+}
+
+# Secrets Configuration for Secret Manager
+secrets = {
+  "DATABASE_URL" = "postgresql://user:password@localhost:5432/dbname"
+  "API_KEY"      = "your-api-key-here"
+  "JWT_SECRET"   = "your-jwt-secret-here"
+  # Add more secrets as needed
+  # "DB_PASSWORD" = "your-db-password"
+  # "API_SECRET"  = "your-api-secret"
+}
+
+# SSL Certificates Configuration (optional - set to {} if not using SSL)
+ssl_certificates = {
+  # "main" = {
+  #   domains = ["your-domain.com", "www.your-domain.com"]
+  # }
+  # Add more certificates as needed
+  # "api" = {
+  #   domains = ["api.your-domain.com"]
+  # }
+}
+
+# Spanner Configuration (optional)
+spanner_instances = {
+  # "main" = {
+  #   instance_id = "my-spanner-instance"
+  #   database_id = "my-database"
+  # }
+}
+
+# Artifact Registry Configuration
+artifact_registries = {
+  "main" = {
+    repository_id = "cloud-run-repo"
+    description   = "Docker repository for Cloud Run services"
+    format        = "DOCKER"
+  }
+  # Add more repositories as needed
+  # "npm" = {
+  #   repository_id = "npm-repo"
+  #   description   = "NPM repository"
+  #   format        = "NPM"
+  # }
+}
+
+# KMS Configuration
+kms_key_rings = {
+  "main" = {
+    location = "australia-southeast2"
+  }
+}
+
+kms_keys = {
+  "main" = {
+    key_ring_name = "main"
+    rotation_period = "7776000s" # 90 days
+  }
+}
+
+# Example configurations for different scenarios:
+
+# Scenario 1: Minimal configuration (no SSL, no VPC connector, no Spanner)
+# ssl_certificates = {}
+# vpc_access_connector_name = ""
+# spanner_instances = {}
+
+# Scenario 2: Full configuration with SSL and VPC connector
+# ssl_certificates = {
+#   "main" = {
+#     domains = ["your-domain.com"]
+#   }
+# }
+# vpc_access_connector_name = "vpc-connector"
+# spanner_instances = {
+#   "main" = {
+#     instance_id = "my-spanner-instance"
+#     database_id = "my-database"
+#   }
+# }
+
+# Scenario 3: Service with only environment variables (no secrets)
+# cloud_run_services = {
+#   "frontend" = {
+#     name         = "frontend-app"
+#     image_name   = "frontend"
+#     image_tag    = "latest"
+#     cpu_limit    = "0.5"
+#     memory_limit = "256Mi"
+#     min_instances = 0
+#     max_instances = 5
+#     environment_vars = {
+#       "ENVIRONMENT" = "dev"
+#       "API_URL"     = "https://api.example.com"
+#     }
+#     secret_names = []  # No secrets needed
+#   }
+# }
+
+# Scenario 4: Service with only secrets (no environment variables)
+# cloud_run_services = {
+#   "worker" = {
+#     name         = "background-worker"
+#     image_name   = "worker"
+#     image_tag    = "latest"
+#     cpu_limit    = "1"
+#     memory_limit = "512Mi"
+#     min_instances = 1
+#     max_instances = 3
+#     environment_vars = {}  # No environment variables
+#     secret_names = ["DATABASE_URL", "REDIS_URL", "WORKER_SECRET"]
+#   }
+# }
