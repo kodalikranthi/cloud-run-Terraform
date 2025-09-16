@@ -67,7 +67,7 @@ The infrastructure includes:
 | `image_tag` | Container image tag | Yes | - | `"latest"` |
 | `cpu_limit` | CPU limit for the service | Yes | - | `"1"` |
 | `memory_limit` | Memory limit for the service | Yes | - | `"512Mi"` |
-| `min_instances` | Minimum number of instances | Yes | - | `0` |
+| `min_instances` | Minimum number of instances | Yes | - | `1` |
 | `max_instances` | Maximum number of instances | Yes | - | `10` |
 | `environment_vars` | Regular environment variables | No | `{}` | `{"PORT": "8080"}` |
 | `secret_names` | List of secret names from Secret Manager | No | `[]` | `["API_KEY", "DB_URL"]` |
@@ -227,10 +227,11 @@ To deploy this infrastructure, your user account needs:
 
 ### Cloud Run Service
 - **Access**: Internal only (no public URL)
-- **Scaling**: 0-10 instances (configurable)
+- **Scaling**: 1-10 instances (configurable, optimized for latency-sensitive apps)
 - **Resources**: 1 CPU, 512Mi memory (configurable)
 - **Environment Variables**: From Secret Manager
 - **Network**: Private VPC with egress only to private ranges
+- **Cold Start Prevention**: Minimum 1 instance always running
 
 ### Secret Manager
 - **Encryption**: Customer-managed KMS keys
@@ -248,6 +249,42 @@ To deploy this infrastructure, your user account needs:
 - **Key Type**: Symmetric encryption
 - **Rotation**: 90 days
 - **Usage**: Secret Manager encryption
+
+## Latency Optimization for Sensitive Applications
+
+This configuration is optimized for latency-sensitive applications with the following features:
+
+### Cold Start Prevention
+- **Minimum Instances**: Set to 1 to ensure at least one instance is always running
+- **No Cold Starts**: Eliminates the delay caused by container initialization
+- **Consistent Performance**: Predictable response times for your application
+
+### Performance Configuration
+```hcl
+# Example for latency-sensitive application
+cloud_run_services = {
+  "api" = {
+    name         = "latency-sensitive-api"
+    image_name   = "api"
+    image_tag    = "latest"
+    cpu_limit    = "2"           # Higher CPU for faster processing
+    memory_limit = "1Gi"         # More memory for better performance
+    min_instances = 1            # Always keep 1 instance running
+    max_instances = 20           # Scale up for high traffic
+    environment_vars = {
+      "ENVIRONMENT" = "production"
+      "LOG_LEVEL"   = "warn"     # Reduce logging overhead
+    }
+    secret_names = ["API_KEY", "DB_URL"]
+  }
+}
+```
+
+### Additional Optimizations
+- **CPU Allocation**: Consider increasing CPU limit for faster processing
+- **Memory Allocation**: Ensure sufficient memory to avoid swapping
+- **Log Level**: Use appropriate log levels to reduce I/O overhead
+- **Image Optimization**: Use optimized container images for faster startup
 
 ## Deployment and Management
 
