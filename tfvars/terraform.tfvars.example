@@ -34,20 +34,35 @@ cloud_run_services = {
     }
     secret_names = ["DATABASE_URL", "API_KEY", "JWT_SECRET"]
   }
+  "api" = {
+    name         = "my-api"
+    image_name   = "api"
+    image_tag    = "v1.0"
+    cpu_limit    = "2"
+    memory_limit = "1Gi"
+    min_instances = 1
+    max_instances = 20
+    environment_vars = {
+      "ENVIRONMENT" = "dev"
+      "API_VERSION" = "v1"
+      "PORT"        = "8080"
+    }
+    secret_names = ["API_SECRET", "DB_PASSWORD"]
+  }
   # Add more services as needed
-  # "api" = {
-  #   name         = "my-api"
-  #   image_name   = "api"
-  #   image_tag    = "v1.0"
-  #   cpu_limit    = "2"
-  #   memory_limit = "1Gi"
+  # "worker" = {
+  #   name         = "background-worker"
+  #   image_name   = "worker"
+  #   image_tag    = "latest"
+  #   cpu_limit    = "1"
+  #   memory_limit = "512Mi"
   #   min_instances = 1
-  #   max_instances = 20
+  #   max_instances = 5
   #   environment_vars = {
   #     "ENVIRONMENT" = "dev"
-  #     "API_VERSION" = "v1"
+  #     "WORKER_TYPE" = "background"
   #   }
-  #   secret_names = ["API_SECRET", "DB_PASSWORD"]
+  #   secret_names = ["REDIS_URL", "WORKER_SECRET"]
   # }
 }
 
@@ -56,27 +71,42 @@ secrets = {
   "DATABASE_URL" = "postgresql://user:password@localhost:5432/dbname"
   "API_KEY"      = "your-api-key-here"
   "JWT_SECRET"   = "your-jwt-secret-here"
+  "API_SECRET"   = "your-api-secret-here"
+  "DB_PASSWORD"  = "your-db-password-here"
+  "REDIS_URL"    = "redis://localhost:6379"
   # Add more secrets as needed
-  # "DB_PASSWORD" = "your-db-password"
-  # "API_SECRET"  = "your-api-secret"
+  # "WORKER_SECRET" = "your-worker-secret"
+  # "EXTERNAL_API_KEY" = "your-external-api-key"
 }
 
 # SSL Certificates Configuration (optional - set to {} if not using SSL)
 ssl_certificates = {
-  # "main" = {
-  #   domains = ["your-domain.com", "www.your-domain.com"]
-  # }
+  "main" = {
+    domains = ["your-domain.com", "www.your-domain.com"]
+  }
+  "api" = {
+    domains = ["api.your-domain.com", "api-staging.your-domain.com"]
+  }
   # Add more certificates as needed
-  # "api" = {
-  #   domains = ["api.your-domain.com"]
+  # "admin" = {
+  #   domains = ["admin.your-domain.com"]
   # }
 }
 
 # Spanner Configuration (optional)
 spanner_instances = {
-  # "main" = {
-  #   instance_id = "my-spanner-instance"
-  #   database_id = "my-database"
+  "main" = {
+    instance_id = "my-spanner-instance"
+    database_id = "my-database"
+  }
+  "analytics" = {
+    instance_id = "analytics-spanner-instance"
+    database_id = "analytics-database"
+  }
+  # Add more Spanner instances as needed
+  # "audit" = {
+  #   instance_id = "audit-spanner-instance"
+  #   database_id = "audit-database"
   # }
 }
 
@@ -87,11 +117,16 @@ artifact_registries = {
     description   = "Docker repository for Cloud Run services"
     format        = "DOCKER"
   }
+  "npm" = {
+    repository_id = "npm-repo"
+    description   = "NPM repository for Node.js packages"
+    format        = "NPM"
+  }
   # Add more repositories as needed
-  # "npm" = {
-  #   repository_id = "npm-repo"
-  #   description   = "NPM repository"
-  #   format        = "NPM"
+  # "maven" = {
+  #   repository_id = "maven-repo"
+  #   description   = "Maven repository for Java packages"
+  #   format        = "MAVEN"
   # }
 }
 
@@ -100,6 +135,13 @@ kms_key_rings = {
   "main" = {
     location = "australia-southeast2"
   }
+  "backup" = {
+    location = "australia-southeast1"
+  }
+  # Add more key rings as needed
+  # "audit" = {
+  #   location = "australia-southeast2"
+  # }
 }
 
 kms_keys = {
@@ -107,6 +149,15 @@ kms_keys = {
     key_ring_name = "main"
     rotation_period = "7776000s" # 90 days
   }
+  "backup" = {
+    key_ring_name = "backup"
+    rotation_period = "15552000s" # 180 days
+  }
+  # Add more keys as needed
+  # "audit" = {
+  #   key_ring_name = "main"
+  #   rotation_period = "31536000s" # 365 days
+  # }
 }
 
 # Example configurations for different scenarios:

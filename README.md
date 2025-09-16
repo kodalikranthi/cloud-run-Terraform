@@ -43,8 +43,8 @@ The infrastructure includes:
 | 1 | `project_id` | The GCP project ID | Yes | - | `"my-gcp-project"` |
 | 2 | `region` | The GCP region | No | `"australia-southeast2"` | `"us-central1"` |
 | 3 | `environment` | Environment name (dev, staging, prod) | No | `"dev"` | `"production"` |
-| 4 | `cloud_run_services` | Map of Cloud Run services to create | No | See below | See Cloud Run Services section |
-| 5 | `secrets` | Map of secrets to create in Secret Manager | No | See below | `{"API_KEY": "secret123"}` |
+| 4 | `cloud_run_services` | Map of Cloud Run services to create | No | See below | `{"app": {...}, "api": {...}}` |
+| 5 | `secrets` | Map of secrets to create in Secret Manager | No | See below | `{"API_KEY": "secret123", "DB_URL": "postgres://..."}` |
 | 6 | `existing_vpc_network` | Name of existing VPC network | No | `"default"` | `"my-vpc"` |
 | 7 | `existing_vpc_subnet` | Name of existing VPC subnet | No | `"default"` | `"my-subnet"` |
 | 8 | `vpc_access_connector_name` | Name of existing VPC access connector | No | `"vpc-connector"` | `"my-connector"` |
@@ -52,11 +52,11 @@ The infrastructure includes:
 | 10 | `load_balancer_network` | Network name for load balancer | No | `"default"` | `"lb-network"` |
 | 11 | `load_balancer_subnet` | Subnet name for load balancer | No | `"default"` | `"lb-subnet"` |
 | 12 | `load_balancer_ip_address` | IP address for load balancer (optional) | No | `null` | `"10.0.0.100"` |
-| 13 | `ssl_certificates` | Map of SSL certificates to create | No | See below | See SSL Certificates section |
-| 14 | `spanner_instances` | Map of Spanner instances for database access | No | `{}` | See Spanner section |
-| 15 | `artifact_registries` | Map of Artifact Registry repositories to create | No | See below | See Artifact Registry section |
-| 16 | `kms_key_rings` | Map of KMS key rings to create | No | See below | See KMS section |
-| 17 | `kms_keys` | Map of KMS keys to create | No | See below | See KMS section |
+| 13 | `ssl_certificates` | Map of SSL certificates to create | No | See below | `{"main": {...}, "api": {...}}` |
+| 14 | `spanner_instances` | Map of Spanner instances for database access | No | See below | `{"main": {...}, "analytics": {...}}` |
+| 15 | `artifact_registries` | Map of Artifact Registry repositories to create | No | See below | `{"main": {...}, "npm": {...}}` |
+| 16 | `kms_key_rings` | Map of KMS key rings to create | No | See below | `{"main": {...}, "backup": {...}}` |
+| 17 | `kms_keys` | Map of KMS keys to create | No | See below | `{"main": {...}, "backup": {...}}` |
 
 ### Cloud Run Services Configuration
 

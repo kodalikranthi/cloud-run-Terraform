@@ -45,6 +45,21 @@ variable "cloud_run_services" {
       }
       secret_names = ["DATABASE_URL", "API_KEY", "JWT_SECRET"]
     }
+    "api" = {
+      name          = "cloud-run-api"
+      image_name    = "api"
+      image_tag     = "v1.0"
+      cpu_limit     = "2"
+      memory_limit  = "1Gi"
+      min_instances = 1
+      max_instances = 20
+      environment_vars = {
+        "ENVIRONMENT" = "dev"
+        "API_VERSION" = "v1"
+        "PORT"        = "8080"
+      }
+      secret_names = ["API_SECRET", "DB_PASSWORD"]
+    }
   }
 }
 
@@ -56,6 +71,9 @@ variable "secrets" {
     "DATABASE_URL" = "postgresql://user:password@localhost:5432/dbname"
     "API_KEY"      = "your-api-key-here"
     "JWT_SECRET"   = "your-jwt-secret-here"
+    "API_SECRET"   = "your-api-secret-here"
+    "DB_PASSWORD"  = "your-db-password-here"
+    "REDIS_URL"    = "redis://localhost:6379"
   }
 }
 
@@ -111,7 +129,10 @@ variable "ssl_certificates" {
   }))
   default = {
     "main" = {
-      domains = ["example.com"]
+      domains = ["example.com", "www.example.com"]
+    }
+    "api" = {
+      domains = ["api.example.com", "api-staging.example.com"]
     }
   }
 }
@@ -123,7 +144,16 @@ variable "spanner_instances" {
     instance_id = string
     database_id = string
   }))
-  default = {}
+  default = {
+    "main" = {
+      instance_id = "my-spanner-instance"
+      database_id = "my-database"
+    }
+    "analytics" = {
+      instance_id = "analytics-spanner-instance"
+      database_id = "analytics-database"
+    }
+  }
 }
 
 # Artifact Registry Configuration
@@ -140,6 +170,11 @@ variable "artifact_registries" {
       description   = "Docker repository for Cloud Run services"
       format        = "DOCKER"
     }
+    "npm" = {
+      repository_id = "npm-repo"
+      description   = "NPM repository for Node.js packages"
+      format        = "NPM"
+    }
   }
 }
 
@@ -152,6 +187,9 @@ variable "kms_key_rings" {
   default = {
     "main" = {
       location = "australia-southeast2"
+    }
+    "backup" = {
+      location = "australia-southeast1"
     }
   }
 }
@@ -166,6 +204,10 @@ variable "kms_keys" {
     "main" = {
       key_ring_name   = "main"
       rotation_period = "7776000s" # 90 days
+    }
+    "backup" = {
+      key_ring_name   = "backup"
+      rotation_period = "15552000s" # 180 days
     }
   }
 }
