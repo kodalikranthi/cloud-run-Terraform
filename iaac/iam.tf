@@ -54,23 +54,4 @@ resource "google_spanner_database_iam_member" "cloudrun_spanner" {
   member   = "serviceAccount:${google_service_account.cloudrun[keys(var.cloud_run_services)[0]].email}"
 }
 
-# IAM: Grant necessary roles to the default compute service account for load balancer
-resource "google_project_iam_member" "compute_service_agent" {
-  project = var.project_id
-  role    = "roles/compute.serviceAgent"
-  member  = "serviceAccount:service-${data.google_project.current.number}@compute-system.iam.gserviceaccount.com"
-}
-
-# IAM: Grant necessary roles for certificate management
-resource "google_project_iam_member" "certificate_manager_admin" {
-  project = var.project_id
-  role    = "roles/certificatemanager.admin"
-  member  = "serviceAccount:service-${data.google_project.current.number}@compute-system.iam.gserviceaccount.com"
-}
-
-# IAM: Grant necessary roles for load balancer management
-resource "google_project_iam_member" "compute_network_admin" {
-  project = var.project_id
-  role    = "roles/compute.networkAdmin"
-  member  = "serviceAccount:service-${data.google_project.current.number}@compute-system.iam.gserviceaccount.com"
 }

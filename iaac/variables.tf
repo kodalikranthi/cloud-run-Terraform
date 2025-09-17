@@ -102,40 +102,6 @@ variable "vpc_access_connector_region" {
   default     = "australia-southeast2"
 }
 
-# Load Balancer Configuration
-variable "load_balancer_network" {
-  description = "Network name for load balancer"
-  type        = string
-  default     = "default"
-}
-
-variable "load_balancer_subnet" {
-  description = "Subnet name for load balancer"
-  type        = string
-  default     = "default"
-}
-
-variable "load_balancer_ip_address" {
-  description = "IP address for load balancer (optional)"
-  type        = string
-  default     = null
-}
-
-# SSL Certificate Configuration
-variable "ssl_certificates" {
-  description = "Map of SSL certificates to create"
-  type = map(object({
-    domains = list(string)
-  }))
-  default = {
-    "main" = {
-      domains = ["example.com", "www.example.com"]
-    }
-    "api" = {
-      domains = ["api.example.com", "api-staging.example.com"]
-    }
-  }
-}
 
 # Spanner Configuration
 variable "spanner_instances" {

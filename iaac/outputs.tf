@@ -8,10 +8,6 @@ output "cloud_run_services" {
   }
 }
 
-output "internal_load_balancer_ip" {
-  description = "Internal IP address of the load balancer"
-  value       = local.load_balancer_ip
-}
 
 output "artifact_registries" {
   description = "Map of Artifact Registry repositories"
@@ -72,20 +68,6 @@ output "vpc_access_connector" {
   value       = var.vpc_access_connector_name != "" ? data.google_vpc_access_connector.existing_connector[0].name : null
 }
 
-output "ssl_certificates" {
-  description = "Map of SSL certificates"
-  value = {
-    for key, cert in google_compute_managed_ssl_certificate.certificates : key => {
-      name    = cert.name
-      domains = cert.managed[0].domains
-    }
-  }
-}
-
-output "load_balancer_forwarding_rule" {
-  description = "Load balancer forwarding rule name"
-  value       = length(var.ssl_certificates) > 0 ? google_compute_forwarding_rule.main_https[0].name : google_compute_forwarding_rule.main_http[0].name
-}
 
 output "spanner_instances" {
   description = "Map of Spanner instances configured"

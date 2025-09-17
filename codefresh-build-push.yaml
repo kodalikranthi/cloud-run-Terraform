@@ -1,0 +1,64 @@
+version: '1.0'
+
+stages:
+  - clone
+  - build_and_push
+
+steps:
+  clone:
+    title: Clone Repository
+    type: git-clone
+    repo: ${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}
+    revision: ${{CF_BRANCH}}
+    git: github
+    stage: clone
+
+  authenticate_gcp:
+    title: Authenticate with Google Cloud
+    type: gcr
+    stage: build_and_push
+    working_directory: ${{clone}}
+    arguments:
+      GCP_KEY: ${{GCP_SERVICE_ACCOUNT_KEY}}
+      GCP_PROJECT_ID: ${{GCP_PROJECT_ID}}
+      GCP_REGION: ${{GCP_REGION}}
+
+  build_image:
+    title: Build Docker Image
+    type: build
+    stage: build_and_push
+    working_directory: ${{clone}}
+    image_name: ${{IMAGE_NAME}}
+    tag: ${{IMAGE_TAG}}
+    dockerfile: Dockerfile
+    build_arguments:
+      - BUILD_ARG_1=${{BUILD_ARG_1}}
+      - BUILD_ARG_2=${{BUILD_ARG_2}}
+    registry: ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}
+
+  push_to_gar:
+    title: Push to Google Artifact Registry
+    type: push
+    stage: build_and_push
+    candidate: ${{build_image}}
+    tag: ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}/${{IMAGE_NAME}}:${{IMAGE_TAG}}
+    registry: ${{GCP_REGION}}-docker.pkg.dev/${{GCP_PROJECT_ID}}/${{GAR_REPOSITORY_ID}}
+
+  deploy_terraform:
+    title: Deploy Infrastructure with Terraform
+    type: build
+    stage: build_and_push
+    working_directory: ${{clone}}/iaac
+    image: hashicorp/terraform:1.6
+    commands:
+      - echo "Initializing Terraform"
+      - terraform init
+      
+      - echo "Validating Terraform configuration"
+      - terraform validate
+      
+      - echo "Planning Terraform deployment"
+      - terraform plan -var-file=../tfvars/terraform.tfvars -var="image_tag=${{IMAGE_TAG}}"
+      
+      - echo "Applying Terraform configuration"
+      - terraform apply -var-file=../tfvars/terraform.tfvars -var="image_tag=${{IMAGE_TAG}}" -auto-approve

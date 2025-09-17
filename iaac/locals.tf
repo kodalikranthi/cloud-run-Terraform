@@ -12,17 +12,10 @@ locals {
     "artifactregistry.googleapis.com",
     "secretmanager.googleapis.com",
     "cloudkms.googleapis.com",
-    "compute.googleapis.com",
-    "certificatemanager.googleapis.com",
     "logging.googleapis.com",
     "spanner.googleapis.com"
   ]
 
   # All secrets from the secrets variable
   all_secrets = var.secrets
-
-  # Flatten all domains from SSL certificates
-  all_ssl_domains = flatten([
-    for cert_key, cert in var.ssl_certificates : cert.domains
-  ])
 }
