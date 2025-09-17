@@ -53,5 +53,3 @@ resource "google_spanner_database_iam_member" "cloudrun_spanner" {
   role     = "roles/spanner.databaseUser"
   member   = "serviceAccount:${google_service_account.cloudrun[keys(var.cloud_run_services)[0]].email}"
 }
-
-}
