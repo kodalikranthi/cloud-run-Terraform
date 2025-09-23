@@ -117,9 +117,8 @@ artifact_registries = {
     description   = "Docker repository for Cloud Run services"
     format        = "DOCKER"
     labels = {
-      environment = "production"
-      service     = "cloud-run"
-      team        = "platform"
+      service = "cloud-run"
+      team    = "platform"
     }
   }
   "npm" = {
@@ -127,9 +126,8 @@ artifact_registries = {
     description   = "NPM repository for Node.js packages"
     format        = "NPM"
     labels = {
-      environment = "production"
-      service     = "npm-packages"
-      team        = "platform"
+      service = "npm-packages"
+      team    = "platform"
     }
   }
   # Add more repositories as needed
@@ -138,9 +136,8 @@ artifact_registries = {
   #   description   = "Maven repository for Java packages"
   #   format        = "MAVEN"
   #   labels = {
-  #     environment = "production"
-  #     service     = "maven-packages"
-  #     team        = "platform"
+  #     service = "maven-packages"
+  #     team    = "platform"
   #   }
   # }
 }

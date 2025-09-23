@@ -15,8 +15,8 @@ resource "google_artifact_registry_repository" "repositories" {
     immutable_tags = true
   }
 
-  # Labels for GAR
-  labels = each.value.labels
+  # Labels for GAR - merge common labels with GAR-specific labels
+  labels = merge(local.common_labels, each.value.labels)
 
   depends_on = [google_project_service.required_apis]
 }

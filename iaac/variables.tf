@@ -137,9 +137,8 @@ variable "artifact_registries" {
       description   = "Docker repository for Cloud Run services"
       format        = "DOCKER"
       labels = {
-        environment = "production"
-        service     = "cloud-run"
-        team        = "platform"
+        service = "cloud-run"
+        team    = "platform"
       }
     }
     "npm" = {
@@ -147,9 +146,8 @@ variable "artifact_registries" {
       description   = "NPM repository for Node.js packages"
       format        = "NPM"
       labels = {
-        environment = "production"
-        service     = "npm-packages"
-        team        = "platform"
+        service = "npm-packages"
+        team    = "platform"
       }
     }
   }

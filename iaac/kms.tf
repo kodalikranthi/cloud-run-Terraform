@@ -29,8 +29,8 @@ resource "google_kms_crypto_key" "gar_encryption_key" {
     algorithm = "GOOGLE_SYMMETRIC_ENCRYPTION"
   }
 
-  labels = {
+  labels = merge(local.common_labels, {
     purpose = "gar-encryption"
     service = "artifact-registry"
-  }
+  })
 }
