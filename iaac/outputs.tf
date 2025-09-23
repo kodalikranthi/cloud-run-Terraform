@@ -13,8 +13,9 @@ output "artifact_registries" {
   description = "Map of Artifact Registry repositories"
   value = {
     for key, repo in google_artifact_registry_repository.repositories : key => {
-      name     = repo.name
-      location = repo.location
+      name         = repo.name
+      location     = repo.location
+      registry_uri = "${var.region}-docker.pkg.dev/${var.project_id}/${repo.repository_id}"
     }
   }
 }

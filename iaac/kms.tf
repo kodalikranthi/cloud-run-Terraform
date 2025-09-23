@@ -19,3 +19,18 @@ resource "google_kms_crypto_key" "keys" {
     algorithm = "GOOGLE_SYMMETRIC_ENCRYPTION"
   }
 }
+
+# Create dedicated KMS key for GAR encryption
+resource "google_kms_crypto_key" "gar_encryption_key" {
+  name     = "gar-kms"
+  key_ring = google_kms_key_ring.key_rings["main"].id
+
+  version_template {
+    algorithm = "GOOGLE_SYMMETRIC_ENCRYPTION"
+  }
+
+  labels = {
+    purpose = "gar-encryption"
+    service = "artifact-registry"
+  }
+}

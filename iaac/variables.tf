@@ -129,17 +129,28 @@ variable "artifact_registries" {
     repository_id = string
     description   = string
     format        = string
+    labels        = map(string)
   }))
   default = {
     "main" = {
       repository_id = "cloud-run-repo"
       description   = "Docker repository for Cloud Run services"
       format        = "DOCKER"
+      labels = {
+        environment = "production"
+        service     = "cloud-run"
+        team        = "platform"
+      }
     }
     "npm" = {
       repository_id = "npm-repo"
       description   = "NPM repository for Node.js packages"
       format        = "NPM"
+      labels = {
+        environment = "production"
+        service     = "npm-packages"
+        team        = "platform"
+      }
     }
   }
 }

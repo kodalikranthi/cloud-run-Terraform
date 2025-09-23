@@ -7,5 +7,16 @@ resource "google_artifact_registry_repository" "repositories" {
   description   = each.value.description
   format        = each.value.format
 
+  # KMS encryption for GAR
+  kms_key_name = google_kms_crypto_key.gar_encryption_key.id
+
+  # Docker configuration with immutable tags
+  docker_config {
+    immutable_tags = true
+  }
+
+  # Labels for GAR
+  labels = each.value.labels
+
   depends_on = [google_project_service.required_apis]
 }
