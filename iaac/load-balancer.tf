@@ -29,7 +29,7 @@ data "google_secret_manager_secret_version" "ssl_certificate" {
 locals {
   ssl_cert_data = data.google_secret_manager_secret_version.ssl_certificate.secret_data
   # Split the certificate and private key (assuming they are concatenated)
-  ssl_cert_parts = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
+  ssl_cert_parts  = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
   ssl_certificate = local.ssl_cert_parts[0]
   ssl_private_key = "-----BEGIN PRIVATE KEY-----${local.ssl_cert_parts[1]}"
 }

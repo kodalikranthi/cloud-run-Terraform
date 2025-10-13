@@ -19,17 +19,16 @@ output "internal_load_balancer_static_ip" {
     name    = google_compute_address.internal_lb_static[0].name
     address = google_compute_address.internal_lb_static[0].address
     region  = google_compute_address.internal_lb_static[0].region
-    status  = google_compute_address.internal_lb_static[0].status
   } : null
 }
 
 output "internal_load_balancer_forwarding_rule" {
   description = "Internal load balancer forwarding rule details"
   value = {
-    name      = google_compute_forwarding_rule.internal_lb_https.name
+    name       = google_compute_forwarding_rule.internal_lb_https.name
     ip_address = var.internal_load_balancer.ip_address != null ? var.internal_load_balancer.ip_address : local.load_balancer_ip
     port_range = "443"
-    target    = google_compute_target_https_proxy.internal_lb.name
+    target     = google_compute_target_https_proxy.internal_lb.name
   }
 }
 
@@ -39,8 +38,8 @@ output "internal_load_balancer_url_map" {
     name = google_compute_url_map.internal_lb.name
     services = {
       for key, service in var.internal_load_balancer.services : key => {
-        service_name = service.service_name
-        path         = service.path
+        service_name    = service.service_name
+        path            = service.path
         backend_service = google_compute_backend_service.internal_lb_backends[key].name
       }
     }
@@ -51,9 +50,9 @@ output "internal_load_balancer_backend_services" {
   description = "Internal load balancer backend services"
   value = {
     for key, backend in google_compute_backend_service.internal_lb_backends : key => {
-      name = backend.name
+      name         = backend.name
       service_name = var.internal_load_balancer.services[key].service_name
-      path = var.internal_load_balancer.services[key].path
+      path         = var.internal_load_balancer.services[key].path
     }
   }
 }
@@ -118,18 +117,16 @@ output "vpc_access_connector" {
 }
 
 output "ssl_certificates" {
-  description = "Map of SSL certificates"
+  description = "SSL certificate details"
   value = {
-    for key, cert in google_compute_managed_ssl_certificate.certificates : key => {
-      name    = cert.name
-      domains = cert.managed[0].domains
-    }
+    name        = google_compute_ssl_certificate.internal_lb_cert.name
+    certificate = google_compute_ssl_certificate.internal_lb_cert.certificate
   }
 }
 
 output "load_balancer_forwarding_rule" {
   description = "Load balancer forwarding rule name"
-  value       = length(var.ssl_certificates) > 0 ? google_compute_forwarding_rule.main_https[0].name : google_compute_forwarding_rule.main_http[0].name
+  value       = google_compute_forwarding_rule.internal_lb_https.name
 }
 
 output "spanner_instances" {

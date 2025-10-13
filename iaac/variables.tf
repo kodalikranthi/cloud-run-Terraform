@@ -126,7 +126,7 @@ variable "load_balancer_ip_address" {
 variable "internal_load_balancer" {
   description = "Configuration for internal load balancer with HTTPS"
   type = object({
-    name                    = string
+    name                   = string
     ip_address             = optional(string)
     create_static_ip       = optional(bool, false)
     static_ip_address      = optional(string)
@@ -138,9 +138,9 @@ variable "internal_load_balancer" {
     }))
   })
   default = {
-    name                    = "internal-lb"
-    create_static_ip        = false
-    ssl_certificate_secret  = "ssl-certificate"
+    name                   = "internal-lb"
+    create_static_ip       = false
+    ssl_certificate_secret = "ssl-certificate"
     services = {
       "app" = {
         service_name = "cloud-run-app"
