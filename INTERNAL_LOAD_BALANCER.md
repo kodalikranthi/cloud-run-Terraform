@@ -96,7 +96,7 @@ cloud_run_services = {
 }
 ```
 
-**Important**: The `name` field in `cloud_run_services` must exactly match the `service_name` field in `internal_load_balancer.services` for the NEG alignment to work correctly.
+**Important**: The keys in `internal_load_balancer.services` must match the keys in `cloud_run_services` for the NEG alignment to work correctly.
 
 ## How It Works
 
@@ -108,7 +108,7 @@ cloud_run_services = {
 
 **Key Improvement**: Backend services are now created dynamically based on the `internal_load_balancer.services` configuration, ensuring only the services you want to expose through the load balancer get backend services.
 
-**NEG Alignment**: The system automatically maps `service_name` from the load balancer configuration to the corresponding NEG created for each Cloud Run service, ensuring proper connectivity.
+**NEG Alignment**: The system uses matching keys between `internal_load_balancer.services` and `cloud_run_services` to directly reference the correct NEGs, ensuring proper connectivity.
 
 ## Routing
 
