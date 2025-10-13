@@ -26,14 +26,10 @@ internal_load_balancer = {
     "app" = {
       service_name = "my-app"
       path         = "/app/*"
-      protocol     = "HTTP"
-      port_name    = "http"
     }
     "api" = {
       service_name = "my-api"
       path         = "/api/*"
-      protocol     = "HTTP"
-      port_name    = "http"
     }
   }
 }

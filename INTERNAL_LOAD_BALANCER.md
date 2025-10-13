@@ -48,20 +48,14 @@ internal_load_balancer = {
     "app" = {
       service_name = "my-app"
       path         = "/app/*"
-      protocol     = "HTTP"
-      port_name    = "http"
     }
     "api" = {
       service_name = "my-api"
       path         = "/api/*"
-      protocol     = "HTTP"
-      port_name    = "http"
     }
     "admin" = {
       service_name = "my-admin"
       path         = "/admin/*"
-      protocol     = "HTTP"
-      port_name    = "http"
     }
   }
 }
@@ -112,6 +106,10 @@ cloud_run_services = {
 **Key Improvement**: Backend services are now created dynamically based on the `internal_load_balancer.services` configuration, ensuring only the services you want to expose through the load balancer get backend services.
 
 **NEG Alignment**: The system uses matching keys between `internal_load_balancer.services` and `cloud_run_services` to directly reference the correct NEGs, ensuring proper connectivity.
+
+**Standard Configuration**: All backend services use the standard Cloud Run configuration:
+- **Protocol**: `HTTP` (standard for Cloud Run)
+- **Port Name**: `http` (standard for Cloud Run)
 
 ## Routing
 

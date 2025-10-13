@@ -3,8 +3,8 @@ resource "google_compute_backend_service" "internal_lb_backends" {
   for_each = var.internal_load_balancer.services
 
   name        = "${each.value.service_name}-backend"
-  protocol    = each.value.protocol
-  port_name   = each.value.port_name
+  protocol    = "HTTP"
+  port_name   = "http"
   timeout_sec = 30
 
   backend {

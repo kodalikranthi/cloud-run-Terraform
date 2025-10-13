@@ -134,8 +134,6 @@ variable "internal_load_balancer" {
     services = map(object({
       service_name = string
       path         = string
-      protocol     = optional(string, "HTTP")
-      port_name    = optional(string, "http")
     }))
   })
   default = {
@@ -146,14 +144,10 @@ variable "internal_load_balancer" {
       "app" = {
         service_name = "cloud-run-app"
         path         = "/app/*"
-        protocol     = "HTTP"
-        port_name    = "http"
       }
       "api" = {
         service_name = "cloud-run-api"
         path         = "/api/*"
-        protocol     = "HTTP"
-        port_name    = "http"
       }
     }
   }
