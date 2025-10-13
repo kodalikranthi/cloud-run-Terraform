@@ -72,4 +72,6 @@ resource "google_compute_region_network_endpoint_group" "cloudrun_negs" {
   cloud_run {
     service = google_cloud_run_v2_service.services[each.key].name
   }
+
+  depends_on = [google_cloud_run_v2_service.services]
 }

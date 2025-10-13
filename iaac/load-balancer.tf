@@ -15,82 +15,77 @@ resource "google_compute_backend_service" "backends" {
     enable      = true
     sample_rate = 1.0
   }
+
+  depends_on = [google_cloud_run_v2_service.services]
 }
 
-# Create managed SSL certificates (only if domains are provided)
-resource "google_compute_managed_ssl_certificate" "certificates" {
-  for_each = length(var.ssl_certificates) > 0 ? var.ssl_certificates : {}
+# Get SSL certificate from manually created Secret Manager secret
+data "google_secret_manager_secret_version" "ssl_certificate" {
+  secret = var.internal_load_balancer.ssl_certificate_secret
+}
 
-  name = "${each.key}-ssl-cert"
+# Parse the SSL certificate and private key from the secret
+locals {
+  ssl_cert_data = data.google_secret_manager_secret_version.ssl_certificate.secret_data
+  # Split the certificate and private key (assuming they are concatenated)
+  ssl_cert_parts = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
+  ssl_certificate = local.ssl_cert_parts[0]
+  ssl_private_key = "-----BEGIN PRIVATE KEY-----${local.ssl_cert_parts[1]}"
+}
 
-  managed {
-    domains = each.value.domains
+# Create SSL certificate from manually created Secret Manager secret
+resource "google_compute_ssl_certificate" "internal_lb_cert" {
+  name        = "${var.internal_load_balancer.name}-ssl-cert"
+  private_key = local.ssl_private_key
+  certificate = local.ssl_certificate
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-# Create URL map
-resource "google_compute_url_map" "main" {
-  name            = "cloud-run-urlmap"
+# Create URL map with path-based routing for multiple services
+resource "google_compute_url_map" "internal_lb" {
+  name = "${var.internal_load_balancer.name}-urlmap"
+
+  # Default service (fallback)
   default_service = google_compute_backend_service.backends[keys(var.cloud_run_services)[0]].id
 
-  # Add host rules for each SSL certificate (only if certificates exist)
-  dynamic "host_rule" {
-    for_each = length(var.ssl_certificates) > 0 ? var.ssl_certificates : {}
-    content {
-      hosts        = host_rule.value.domains
-      path_matcher = "${host_rule.key}-paths"
-    }
-  }
-
-  # Add path matchers for each certificate (only if certificates exist)
+  # Path-based routing for each service
   dynamic "path_matcher" {
-    for_each = length(var.ssl_certificates) > 0 ? var.ssl_certificates : {}
+    for_each = var.internal_load_balancer.services
     content {
-      name            = "${path_matcher.key}-paths"
-      default_service = google_compute_backend_service.backends[keys(var.cloud_run_services)[0]].id
+      name            = "${path_matcher.key}-matcher"
+      default_service = google_compute_backend_service.backends[path_matcher.key].id
+
+      # Path rules for each service
+      path_rule {
+        paths   = [path_matcher.value.path]
+        service = google_compute_backend_service.backends[path_matcher.key].id
+      }
     }
   }
 }
 
-# Create target HTTPS proxy (only if SSL certificates exist)
-resource "google_compute_target_https_proxy" "main" {
-  count = length(var.ssl_certificates) > 0 ? 1 : 0
-
-  name             = "cloud-run-https-proxy"
-  url_map          = google_compute_url_map.main.id
-  ssl_certificates = [for cert in google_compute_managed_ssl_certificate.certificates : cert.id]
+# Create target HTTPS proxy
+resource "google_compute_target_https_proxy" "internal_lb" {
+  name             = "${var.internal_load_balancer.name}-https-proxy"
+  url_map          = google_compute_url_map.internal_lb.id
+  ssl_certificates = [google_compute_ssl_certificate.internal_lb_cert.id]
 }
 
-# Create target HTTP proxy (fallback when no SSL certificates)
-resource "google_compute_target_http_proxy" "main" {
-  count = length(var.ssl_certificates) == 0 ? 1 : 0
-
-  name    = "cloud-run-http-proxy"
-  url_map = google_compute_url_map.main.id
-}
-
-# Create forwarding rule for internal load balancer (HTTPS)
-resource "google_compute_forwarding_rule" "main_https" {
-  count = length(var.ssl_certificates) > 0 ? 1 : 0
-
-  name                  = "cloud-run-forwarding-rule-https"
-  target                = google_compute_target_https_proxy.main[0].id
+# Create single forwarding rule for internal load balancer (HTTPS)
+resource "google_compute_forwarding_rule" "internal_lb_https" {
+  name                  = "${var.internal_load_balancer.name}-forwarding-rule"
+  target                = google_compute_target_https_proxy.internal_lb.id
   port_range            = "443"
   load_balancing_scheme = "INTERNAL_MANAGED"
   network               = data.google_compute_network.load_balancer_network.id
   subnetwork            = data.google_compute_subnetwork.load_balancer_subnet.id
-  ip_address            = local.load_balancer_ip
-}
+  ip_address            = var.internal_load_balancer.ip_address != null ? var.internal_load_balancer.ip_address : local.load_balancer_ip
 
-# Create forwarding rule for internal load balancer (HTTP)
-resource "google_compute_forwarding_rule" "main_http" {
-  count = length(var.ssl_certificates) == 0 ? 1 : 0
-
-  name                  = "cloud-run-forwarding-rule-http"
-  target                = google_compute_target_http_proxy.main[0].id
-  port_range            = "80"
-  load_balancing_scheme = "INTERNAL_MANAGED"
-  network               = data.google_compute_network.load_balancer_network.id
-  subnetwork            = data.google_compute_subnetwork.load_balancer_subnet.id
-  ip_address            = local.load_balancer_ip
+  depends_on = [
+    google_compute_backend_service.backends,
+    google_cloud_run_v2_service.services
+  ]
 }

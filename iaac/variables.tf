@@ -74,6 +74,7 @@ variable "secrets" {
     "API_SECRET"   = "your-api-secret-here"
     "DB_PASSWORD"  = "your-db-password-here"
     "REDIS_URL"    = "redis://localhost:6379"
+    # Note: ssl-certificate secret should be created manually outside of Terraform
   }
 }
 
@@ -121,20 +122,47 @@ variable "load_balancer_ip_address" {
   default     = null
 }
 
-# SSL Certificate Configuration
+# Internal Load Balancer Configuration
+variable "internal_load_balancer" {
+  description = "Configuration for internal load balancer with HTTPS"
+  type = object({
+    name                    = string
+    ip_address             = optional(string)
+    create_static_ip       = optional(bool, false)
+    static_ip_address      = optional(string)
+    ssl_certificate_secret = string
+    services = map(object({
+      service_name = string
+      path         = string
+      priority     = optional(number, 1000)
+    }))
+  })
+  default = {
+    name                    = "internal-lb"
+    create_static_ip        = false
+    ssl_certificate_secret  = "ssl-certificate"
+    services = {
+      "app" = {
+        service_name = "cloud-run-app"
+        path         = "/app/*"
+        priority     = 1000
+      }
+      "api" = {
+        service_name = "cloud-run-api"
+        path         = "/api/*"
+        priority     = 2000
+      }
+    }
+  }
+}
+
+# SSL Certificate Configuration (deprecated - use internal_load_balancer.ssl_certificate_secret)
 variable "ssl_certificates" {
-  description = "Map of SSL certificates to create"
+  description = "Map of SSL certificates to create (deprecated - use internal_load_balancer.ssl_certificate_secret)"
   type = map(object({
     domains = list(string)
   }))
-  default = {
-    "main" = {
-      domains = ["example.com", "www.example.com"]
-    }
-    "api" = {
-      domains = ["api.example.com", "api-staging.example.com"]
-    }
-  }
+  default = {}
 }
 
 # Spanner Configuration

@@ -16,6 +16,26 @@ load_balancer_network = "default"
 load_balancer_subnet  = "default"
 # load_balancer_ip_address = "10.0.0.100"  # Optional: specify existing IP
 
+# Internal Load Balancer Configuration
+internal_load_balancer = {
+  name                    = "internal-lb"
+  create_static_ip        = true          # Set to true to reserve a static IP
+  static_ip_address       = "10.0.0.100"  # Optional: specify the static IP address
+  ssl_certificate_secret  = "ssl-certificate"  # Manually created secret in Secret Manager
+  services = {
+    "app" = {
+      service_name = "my-app"
+      path         = "/app/*"
+      priority     = 1000
+    }
+    "api" = {
+      service_name = "my-api"
+      path         = "/api/*"
+      priority     = 2000
+    }
+  }
+}
+
 # Cloud Run Services Configuration
 cloud_run_services = {
   "app" = {
