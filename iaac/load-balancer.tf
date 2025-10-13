@@ -1,8 +1,8 @@
-# Create backend services for each Cloud Run service
-resource "google_compute_backend_service" "backends" {
-  for_each = var.cloud_run_services
+# Create backend services for each service in the load balancer configuration
+resource "google_compute_backend_service" "internal_lb_backends" {
+  for_each = var.internal_load_balancer.services
 
-  name        = "${each.value.name}-backend"
+  name        = "${each.value.service_name}-backend"
   protocol    = "HTTP"
   port_name   = "http"
   timeout_sec = 30
@@ -48,20 +48,20 @@ resource "google_compute_ssl_certificate" "internal_lb_cert" {
 resource "google_compute_url_map" "internal_lb" {
   name = "${var.internal_load_balancer.name}-urlmap"
 
-  # Default service (fallback)
-  default_service = google_compute_backend_service.backends[keys(var.cloud_run_services)[0]].id
+  # Default service (fallback) - use first service from load balancer configuration
+  default_service = google_compute_backend_service.internal_lb_backends[keys(var.internal_load_balancer.services)[0]].id
 
   # Path-based routing for each service
   dynamic "path_matcher" {
     for_each = var.internal_load_balancer.services
     content {
       name            = "${path_matcher.key}-matcher"
-      default_service = google_compute_backend_service.backends[path_matcher.key].id
+      default_service = google_compute_backend_service.internal_lb_backends[path_matcher.key].id
 
       # Path rules for each service
       path_rule {
         paths   = [path_matcher.value.path]
-        service = google_compute_backend_service.backends[path_matcher.key].id
+        service = google_compute_backend_service.internal_lb_backends[path_matcher.key].id
       }
     }
   }
@@ -85,7 +85,7 @@ resource "google_compute_forwarding_rule" "internal_lb_https" {
   ip_address            = var.internal_load_balancer.ip_address != null ? var.internal_load_balancer.ip_address : local.load_balancer_ip
 
   depends_on = [
-    google_compute_backend_service.backends,
+    google_compute_backend_service.internal_lb_backends,
     google_cloud_run_v2_service.services
   ]
 }

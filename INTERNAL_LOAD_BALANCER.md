@@ -99,10 +99,12 @@ cloud_run_services = {
 ## How It Works
 
 1. **NEGs**: Each Cloud Run service gets a Network Endpoint Group (NEG) that depends on the Cloud Run service
-2. **Backend Services**: Each NEG is attached to a backend service
+2. **Backend Services**: Backend services are created only for services defined in `internal_load_balancer.services`
 3. **URL Map**: Path-based routing directs traffic to the appropriate backend service
 4. **SSL Certificate**: Retrieved from Secret Manager and used for HTTPS termination
 5. **Forwarding Rule**: Single forwarding rule on port 443 for all services
+
+**Key Improvement**: Backend services are now created dynamically based on the `internal_load_balancer.services` configuration, ensuring only the services you want to expose through the load balancer get backend services.
 
 ## Routing
 
@@ -120,6 +122,7 @@ After deployment, you'll get these outputs:
 - `internal_load_balancer_static_ip`: Static IP details (if `create_static_ip = true`)
 - `internal_load_balancer_forwarding_rule`: Details about the forwarding rule
 - `internal_load_balancer_url_map`: URL map configuration with service routing
+- `internal_load_balancer_backend_services`: Backend services created for load balancer
 
 ## Dependencies
 

@@ -41,8 +41,19 @@ output "internal_load_balancer_url_map" {
       for key, service in var.internal_load_balancer.services : key => {
         service_name = service.service_name
         path         = service.path
-        backend_service = google_compute_backend_service.backends[key].name
+        backend_service = google_compute_backend_service.internal_lb_backends[key].name
       }
+    }
+  }
+}
+
+output "internal_load_balancer_backend_services" {
+  description = "Internal load balancer backend services"
+  value = {
+    for key, backend in google_compute_backend_service.internal_lb_backends : key => {
+      name = backend.name
+      service_name = var.internal_load_balancer.services[key].service_name
+      path = var.internal_load_balancer.services[key].path
     }
   }
 }
