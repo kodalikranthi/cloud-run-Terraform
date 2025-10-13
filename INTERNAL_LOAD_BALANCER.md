@@ -48,17 +48,20 @@ internal_load_balancer = {
     "app" = {
       service_name = "my-app"
       path         = "/app/*"
-      priority     = 1000
+      protocol     = "HTTP"
+      port_name    = "http"
     }
     "api" = {
       service_name = "my-api"
       path         = "/api/*"
-      priority     = 2000
+      protocol     = "HTTP"
+      port_name    = "http"
     }
     "admin" = {
       service_name = "my-admin"
       path         = "/admin/*"
-      priority     = 3000
+      protocol     = "HTTP"
+      port_name    = "http"
     }
   }
 }
