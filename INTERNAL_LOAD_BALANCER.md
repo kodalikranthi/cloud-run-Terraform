@@ -76,25 +76,27 @@ Ensure your Cloud Run services are configured to match the service names in the 
 ```hcl
 cloud_run_services = {
   "app" = {
-    name         = "my-app"
+    name         = "my-app"      # This name must match service_name in load balancer
     image_name   = "app"
     image_tag    = "latest"
     # ... other configuration
   }
   "api" = {
-    name         = "my-api"
+    name         = "my-api"      # This name must match service_name in load balancer
     image_name   = "api"
     image_tag    = "v1.0"
     # ... other configuration
   }
   "admin" = {
-    name         = "my-admin"
+    name         = "my-admin"    # This name must match service_name in load balancer
     image_name   = "admin"
     image_tag    = "latest"
     # ... other configuration
   }
 }
 ```
+
+**Important**: The `name` field in `cloud_run_services` must exactly match the `service_name` field in `internal_load_balancer.services` for the NEG alignment to work correctly.
 
 ## How It Works
 
@@ -105,6 +107,8 @@ cloud_run_services = {
 5. **Forwarding Rule**: Single forwarding rule on port 443 for all services
 
 **Key Improvement**: Backend services are now created dynamically based on the `internal_load_balancer.services` configuration, ensuring only the services you want to expose through the load balancer get backend services.
+
+**NEG Alignment**: The system automatically maps `service_name` from the load balancer configuration to the corresponding NEG created for each Cloud Run service, ensuring proper connectivity.
 
 ## Routing
 

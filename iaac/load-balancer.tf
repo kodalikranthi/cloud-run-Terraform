@@ -1,3 +1,10 @@
+# Local variable to map service names to their keys in cloud_run_services
+locals {
+  service_name_to_key = {
+    for key, service in var.cloud_run_services : service.name => key
+  }
+}
+
 # Create backend services for each service in the load balancer configuration
 resource "google_compute_backend_service" "internal_lb_backends" {
   for_each = var.internal_load_balancer.services
@@ -8,7 +15,10 @@ resource "google_compute_backend_service" "internal_lb_backends" {
   timeout_sec = 30
 
   backend {
-    group = google_compute_region_network_endpoint_group.cloudrun_negs[each.key].id
+    # Use the mapped key to reference the correct NEG
+    group = google_compute_region_network_endpoint_group.cloudrun_negs[
+      local.service_name_to_key[each.value.service_name]
+    ].id
   }
 
   log_config {
