@@ -28,10 +28,33 @@ data "google_secret_manager_secret_version" "ssl_certificate" {
 # Parse the SSL certificate and private key from the secret
 locals {
   ssl_cert_data = data.google_secret_manager_secret_version.ssl_certificate.secret_data
-  # Split the certificate and private key (assuming they are concatenated)
-  ssl_cert_parts  = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
-  ssl_certificate = local.ssl_cert_parts[0]
-  ssl_private_key = "-----BEGIN PRIVATE KEY-----${local.ssl_cert_parts[1]}"
+  
+  # Split the certificate and private key first (assuming they are concatenated)
+  ssl_cert_parts = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
+  
+  # Extract certificate content between markers
+  ssl_cert_raw = local.ssl_cert_parts[0]
+  ssl_key_raw = local.ssl_cert_parts[1]
+  
+  # Extract just the certificate content (between BEGIN and END markers)
+  ssl_cert_content = replace(
+    replace(local.ssl_cert_raw, "-----BEGIN CERTIFICATE-----", ""),
+    "-----END CERTIFICATE-----", ""
+  )
+  
+  # Extract just the private key content (between BEGIN and END markers)  
+  ssl_key_content = replace(
+    replace(local.ssl_key_raw, "-----BEGIN PRIVATE KEY-----", ""),
+    "-----END PRIVATE KEY-----", ""
+  )
+  
+  # Replace spaces with newlines in the actual content
+  ssl_cert_content_fixed = replace(local.ssl_cert_content, " ", "\n")
+  ssl_key_content_fixed = replace(local.ssl_key_content, " ", "\n")
+  
+  # Reconstruct the certificate and private key with proper formatting
+  ssl_certificate = "-----BEGIN CERTIFICATE-----\n${local.ssl_cert_content_fixed}\n-----END CERTIFICATE-----"
+  ssl_private_key = "-----BEGIN PRIVATE KEY-----\n${local.ssl_key_content_fixed}\n-----END PRIVATE KEY-----"
 }
 
 # Create SSL certificate from manually created Secret Manager secret
@@ -45,24 +68,30 @@ resource "google_compute_ssl_certificate" "internal_lb_cert" {
   }
 }
 
-# Create URL map with path-based routing for multiple services
+# Create URL map with host and path-based routing for multiple services
 resource "google_compute_url_map" "internal_lb" {
   name = "${var.internal_load_balancer.name}-urlmap"
 
   # Default service (fallback) - use first service from load balancer configuration
   default_service = google_compute_backend_service.internal_lb_backends[keys(var.internal_load_balancer.services)[0]].id
 
-  # Path-based routing for each service
-  dynamic "path_matcher" {
-    for_each = var.internal_load_balancer.services
-    content {
-      name            = "${path_matcher.key}-matcher"
-      default_service = google_compute_backend_service.internal_lb_backends[path_matcher.key].id
+  # Host rules for all configured hosts
+  host_rule {
+    hosts        = var.internal_load_balancer.hosts
+    path_matcher = "all-paths"
+  }
 
-      # Path rules for each service
-      path_rule {
-        paths   = [path_matcher.value.path]
-        service = google_compute_backend_service.internal_lb_backends[path_matcher.key].id
+  # Path matcher for all services
+  path_matcher {
+    name            = "all-paths"
+    default_service = google_compute_backend_service.internal_lb_backends[keys(var.internal_load_balancer.services)[0]].id
+
+    # Path rules for each service
+    dynamic "path_rule" {
+      for_each = var.internal_load_balancer.services
+      content {
+        paths   = [path_rule.value.path]
+        service = google_compute_backend_service.internal_lb_backends[path_rule.key].id
       }
     }
   }

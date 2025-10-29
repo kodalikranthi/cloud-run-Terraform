@@ -131,6 +131,7 @@ variable "internal_load_balancer" {
     create_static_ip       = optional(bool, false)
     static_ip_address      = optional(string)
     ssl_certificate_secret = string
+    hosts                  = optional(list(string), ["*"])
     services = map(object({
       service_name = string
       path         = string

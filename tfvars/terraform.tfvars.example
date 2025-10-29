@@ -22,6 +22,7 @@ internal_load_balancer = {
   create_static_ip        = true          # Set to true to reserve a static IP
   static_ip_address       = "10.0.0.100"  # Optional: specify the static IP address
   ssl_certificate_secret  = "ssl-certificate"  # Manually created secret in Secret Manager
+  hosts                   = ["*"]         # Accept all hosts (or specify specific domains)
   services = {
     "app" = {
       service_name = "my-app"
