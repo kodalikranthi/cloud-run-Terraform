@@ -20,48 +20,66 @@ resource "google_compute_backend_service" "internal_lb_backends" {
   depends_on = [google_cloud_run_v2_service.services]
 }
 
-# Get SSL certificate from manually created Secret Manager secret
-data "google_secret_manager_secret_version" "ssl_certificate" {
-  secret = var.internal_load_balancer.ssl_certificate_secret
+# Get SSL certificates from manually created Secret Manager secrets
+data "google_secret_manager_secret_version" "ssl_certificates" {
+  for_each = toset(var.internal_load_balancer.ssl_certificate_secrets)
+  secret   = each.value
 }
 
-# Parse the SSL certificate and private key from the secret
+# Parse the SSL certificates and private keys from the secrets
 locals {
-  ssl_cert_data = data.google_secret_manager_secret_version.ssl_certificate.secret_data
+  # First, split all certificates
+  ssl_cert_parts = {
+    for secret_name, cert_data in data.google_secret_manager_secret_version.ssl_certificates : secret_name => 
+    split("-----BEGIN PRIVATE KEY-----", cert_data.secret_data)
+  }
   
-  # Split the certificate and private key first (assuming they are concatenated)
-  ssl_cert_parts = split("-----BEGIN PRIVATE KEY-----", local.ssl_cert_data)
+  # Extract certificate content
+  ssl_cert_content = {
+    for secret_name, parts in local.ssl_cert_parts : secret_name => 
+    replace(
+      replace(parts[0], "-----BEGIN CERTIFICATE-----", ""),
+      "-----END CERTIFICATE-----", ""
+    )
+  }
   
-  # Extract certificate content between markers
-  ssl_cert_raw = local.ssl_cert_parts[0]
-  ssl_key_raw = local.ssl_cert_parts[1]
+  # Extract private key content
+  ssl_key_content = {
+    for secret_name, parts in local.ssl_cert_parts : secret_name => 
+    replace(
+      replace(parts[1], "-----BEGIN PRIVATE KEY-----", ""),
+      "-----END PRIVATE KEY-----", ""
+    )
+  }
   
-  # Extract just the certificate content (between BEGIN and END markers)
-  ssl_cert_content = replace(
-    replace(local.ssl_cert_raw, "-----BEGIN CERTIFICATE-----", ""),
-    "-----END CERTIFICATE-----", ""
-  )
+  # Fix newlines in certificate content
+  ssl_cert_content_fixed = {
+    for secret_name, content in local.ssl_cert_content : secret_name => 
+    replace(content, " ", "\n")
+  }
   
-  # Extract just the private key content (between BEGIN and END markers)  
-  ssl_key_content = replace(
-    replace(local.ssl_key_raw, "-----BEGIN PRIVATE KEY-----", ""),
-    "-----END PRIVATE KEY-----", ""
-  )
+  # Fix newlines in private key content
+  ssl_key_content_fixed = {
+    for secret_name, content in local.ssl_key_content : secret_name => 
+    replace(content, " ", "\n")
+  }
   
-  # Replace spaces with newlines in the actual content
-  ssl_cert_content_fixed = replace(local.ssl_cert_content, " ", "\n")
-  ssl_key_content_fixed = replace(local.ssl_key_content, " ", "\n")
-  
-  # Reconstruct the certificate and private key with proper formatting
-  ssl_certificate = "-----BEGIN CERTIFICATE-----\n${local.ssl_cert_content_fixed}\n-----END CERTIFICATE-----"
-  ssl_private_key = "-----BEGIN PRIVATE KEY-----\n${local.ssl_key_content_fixed}\n-----END PRIVATE KEY-----"
+  # Final parsed certificates
+  ssl_certificates_parsed = {
+    for secret_name in keys(data.google_secret_manager_secret_version.ssl_certificates) : secret_name => {
+      ssl_certificate = "-----BEGIN CERTIFICATE-----\n${local.ssl_cert_content_fixed[secret_name]}\n-----END CERTIFICATE-----"
+      ssl_private_key = "-----BEGIN PRIVATE KEY-----\n${local.ssl_key_content_fixed[secret_name]}\n-----END PRIVATE KEY-----"
+    }
+  }
 }
 
-# Create SSL certificate from manually created Secret Manager secret
-resource "google_compute_ssl_certificate" "internal_lb_cert" {
-  name        = "${var.internal_load_balancer.name}-ssl-cert"
-  private_key = local.ssl_private_key
-  certificate = local.ssl_certificate
+# Create SSL certificates from manually created Secret Manager secrets
+resource "google_compute_ssl_certificate" "internal_lb_certs" {
+  for_each = local.ssl_certificates_parsed
+
+  name        = "${var.internal_load_balancer.name}-ssl-cert-${each.key}"
+  private_key = each.value.ssl_private_key
+  certificate = each.value.ssl_certificate
 
   lifecycle {
     create_before_destroy = true
@@ -101,7 +119,7 @@ resource "google_compute_url_map" "internal_lb" {
 resource "google_compute_target_https_proxy" "internal_lb" {
   name             = "${var.internal_load_balancer.name}-https-proxy"
   url_map          = google_compute_url_map.internal_lb.id
-  ssl_certificates = [google_compute_ssl_certificate.internal_lb_cert.id]
+  ssl_certificates = [for cert in google_compute_ssl_certificate.internal_lb_certs : cert.id]
 }
 
 # Create single forwarding rule for internal load balancer (HTTPS)

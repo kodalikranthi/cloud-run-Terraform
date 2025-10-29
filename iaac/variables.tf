@@ -130,7 +130,7 @@ variable "internal_load_balancer" {
     ip_address             = optional(string)
     create_static_ip       = optional(bool, false)
     static_ip_address      = optional(string)
-    ssl_certificate_secret = string
+    ssl_certificate_secrets = list(string)
     hosts                  = optional(list(string), ["*"])
     services = map(object({
       service_name = string
@@ -140,7 +140,7 @@ variable "internal_load_balancer" {
   default = {
     name                   = "internal-lb"
     create_static_ip       = false
-    ssl_certificate_secret = "ssl-certificate"
+    ssl_certificate_secrets = ["ssl-certificate"]
     services = {
       "app" = {
         service_name = "cloud-run-app"

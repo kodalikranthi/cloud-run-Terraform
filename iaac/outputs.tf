@@ -119,8 +119,10 @@ output "vpc_access_connector" {
 output "ssl_certificates" {
   description = "SSL certificate details"
   value = {
-    name        = google_compute_ssl_certificate.internal_lb_cert.name
-    certificate = google_compute_ssl_certificate.internal_lb_cert.certificate
+    for key, cert in google_compute_ssl_certificate.internal_lb_certs : key => {
+      name        = cert.name
+      certificate = cert.certificate
+    }
   }
 }
 
