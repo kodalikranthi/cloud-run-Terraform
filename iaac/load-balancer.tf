@@ -26,60 +26,35 @@ data "google_secret_manager_secret_version" "ssl_certificates" {
   secret   = each.value
 }
 
-# Parse the SSL certificates and private keys from the secrets
-locals {
-  # First, split all certificates
-  ssl_cert_parts = {
-    for secret_name, cert_data in data.google_secret_manager_secret_version.ssl_certificates : secret_name => 
-    split("-----BEGIN PRIVATE KEY-----", cert_data.secret_data)
-  }
-  
-  # Extract certificate content
-  ssl_cert_content = {
-    for secret_name, parts in local.ssl_cert_parts : secret_name => 
-    replace(
-      replace(parts[0], "-----BEGIN CERTIFICATE-----", ""),
-      "-----END CERTIFICATE-----", ""
-    )
-  }
-  
-  # Extract private key content
-  ssl_key_content = {
-    for secret_name, parts in local.ssl_cert_parts : secret_name => 
-    replace(
-      replace(parts[1], "-----BEGIN PRIVATE KEY-----", ""),
-      "-----END PRIVATE KEY-----", ""
-    )
-  }
-  
-  # Fix newlines in certificate content
-  ssl_cert_content_fixed = {
-    for secret_name, content in local.ssl_cert_content : secret_name => 
-    replace(content, " ", "\n")
-  }
-  
-  # Fix newlines in private key content
-  ssl_key_content_fixed = {
-    for secret_name, content in local.ssl_key_content : secret_name => 
-    replace(content, " ", "\n")
-  }
-  
-  # Final parsed certificates
-  ssl_certificates_parsed = {
-    for secret_name in keys(data.google_secret_manager_secret_version.ssl_certificates) : secret_name => {
-      ssl_certificate = "-----BEGIN CERTIFICATE-----\n${local.ssl_cert_content_fixed[secret_name]}\n-----END CERTIFICATE-----"
-      ssl_private_key = "-----BEGIN PRIVATE KEY-----\n${local.ssl_key_content_fixed[secret_name]}\n-----END PRIVATE KEY-----"
-    }
-  }
-}
-
 # Create SSL certificates from manually created Secret Manager secrets
 resource "google_compute_ssl_certificate" "internal_lb_certs" {
-  for_each = local.ssl_certificates_parsed
+  for_each = data.google_secret_manager_secret_version.ssl_certificates
 
-  name        = "${var.internal_load_balancer.name}-ssl-cert-${each.key}"
-  private_key = each.value.ssl_private_key
-  certificate = each.value.ssl_certificate
+  name = "${var.internal_load_balancer.name}-ssl-cert-${each.key}"
+  
+  # Parse and fix the certificate
+  certificate = "-----BEGIN CERTIFICATE-----\n${replace(
+    replace(
+      replace(
+        split("-----BEGIN PRIVATE KEY-----", each.value.secret_data)[0],
+        "-----BEGIN CERTIFICATE-----", ""
+      ),
+      "-----END CERTIFICATE-----", ""
+    ),
+    " ", "\n"
+  )}\n-----END CERTIFICATE-----"
+  
+  # Parse and fix the private key
+  private_key = "-----BEGIN PRIVATE KEY-----\n${replace(
+    replace(
+      replace(
+        split("-----BEGIN PRIVATE KEY-----", each.value.secret_data)[1],
+        "-----BEGIN PRIVATE KEY-----", ""
+      ),
+      "-----END PRIVATE KEY-----", ""
+    ),
+    " ", "\n"
+  )}\n-----END PRIVATE KEY-----"
 
   lifecycle {
     create_before_destroy = true
